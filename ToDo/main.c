@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-
 struct ToDo
 {
     int id;
@@ -65,7 +64,7 @@ void edit(struct ToDo taches[], int *nombreTaches)
 
     if (ID_tache < 1 || ID_tache > (*nombreTaches))
     {
-        printf("\ncette tache d'ID %d n'exite pas\n", ID_tache);
+        printf("\ncette tache d'id %d n'exite pas\n", ID_tache);
         return;
     }
 
@@ -116,7 +115,7 @@ void delete(struct ToDo taches[], int *nombreTaches)
     getchar();
     if (ID_tache < 1 || ID_tache > (*nombreTaches))
     {
-        printf("\ncette tache d'ID %d n'exite pas\n", ID_tache);
+        printf("\ncette tache d'id %d n'exite pas\n", ID_tache);
     }
     // Glisser les tâches après la tâche supprimée vers la gauche
     for (int i = ID_tache - 1; i < (*nombreTaches) - 1; i++)
@@ -126,6 +125,99 @@ void delete(struct ToDo taches[], int *nombreTaches)
     }
     (*nombreTaches)--;
     printf("La tache du id %d a ete suprimer avec succes", ID_tache);
+}
+
+
+void search(struct ToDo taches[], int *nombreTaches)
+{
+    int choix;
+    printf("Sélectionnez le champ à rechercher: \n");
+    printf("1. ID\n");
+    printf("2. Titre\n");
+    printf("Entrer votre choix: ");
+
+    if (scanf("%d", &choix) != 1)
+    {
+        printf("Choix invalide. entrer un nombre.\n");
+        scanf("%*s"); // Efface le buffer (stockage temporel) d'entrée
+        return;
+    }
+    getchar();
+
+    switch (choix)
+    {
+    case 1:
+        // Recherche par ID
+        int ID_tache;
+        printf("Entrer l'ID de la tâche à rechercher: ");
+        scanf("%d", &ID_tache);
+        getchar();
+
+        for (int i = 0; i < (*nombreTaches); i++)
+        {
+            if (taches[i].id == ID_tache)
+            {
+                printf("\nID: %d\n", taches[i].id);
+                printf("Titre: %s", taches[i].titre);
+                printf("Description: %s", taches[i].description);
+                printf("Deadline: %s", taches[i].deadline);
+                printf("Statut: %s", taches[i].statut);
+                return;
+            }
+        }
+
+        printf("\nAucune tâche trouvée avec l'ID %d.\n", ID_tache);
+        break;
+
+    case 2:
+        // Recherche par titre
+        char titre[100];
+        printf("Entrer le titre de la tâche à rechercher: ");
+        fgets(titre, sizeof(titre), stdin);
+
+        for (int i = 0; i < (*nombreTaches); i++)
+        {
+            if (strcmp(taches[i].titre, titre) == 0)
+            {
+                printf("\nID: %d\n", taches[i].id);
+                printf("Titre: %s", taches[i].titre);
+                printf("Description: %s", taches[i].description);
+                printf("Deadline: %s", taches[i].deadline);
+                printf("Statut: %s", taches[i].statut);
+                return;
+            }
+        }
+
+        printf("\nAucune tâche trouvée avec le titre \"%s\".\n", titre);
+        break;
+
+    default:
+        printf("Choix invalide.\n");
+        return;
+    }
+}
+
+void statistics(struct ToDo taches[], int *nombreTaches)
+{
+    int tachesComplet = 0;
+    int tachesIncomplet = 0;
+
+    printf("Nombre total de tâches: %d\n", *nombreTaches);
+
+    for (int i = 0; i < *nombreTaches; i++)
+    {
+        if (strcmp(taches[i].statut, "done") == 0)
+        {
+            tachesComplet++;
+        }
+        else
+        {
+            tachesIncomplet++;
+        }
+    }
+
+    printf("Nombre de tâches terminées: %d\n", tachesComplet);
+    printf("Nombre de tâches incomplètes: %d\n", tachesIncomplet);
 }
 
 int main()
@@ -164,12 +256,20 @@ int main()
             show(taches, &nombreTaches);
             break;
         case 4:
-            // afficher tous les taches
+            // modifier par identifion (id)
             edit(taches, &nombreTaches);
             break;
         case 5:
-            // afficher tous les taches
-            delete(taches, &nombreTaches);
+            // suprimer par identifion (id)
+            delete (taches, &nombreTaches);
+            break;
+        case 6:
+            // rechercher par identifion (id)
+            search(taches, &nombreTaches);
+            break;
+        case 7:
+            // rechercher par identifion (id)
+            statistics(taches, &nombreTaches);
             break;
         default:
             printf("\nInvalid choice\n");
@@ -177,5 +277,5 @@ int main()
         }
     } while (choix != 8);
 
-    return 0;
+    return 1;
 }
