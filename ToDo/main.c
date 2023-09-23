@@ -1,70 +1,181 @@
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+
+struct Date
+{
+    int day;
+    int month;
+    int year;
+};
+
 struct ToDo
 {
     int id;
     char titre[100];
     char description[500];
-    char deadline[20];
+    struct Date deadline;
     char statut[20];
 };
 
-void addOne(struct ToDo taches[], int *nombreTaches)
+//la fonction ajouterUn
+void ajouterUn(struct ToDo taches[], int *nombreTaches)
 {
     struct ToDo nouveauTache;
     nouveauTache.id = (*nombreTaches) + 1; // pour prendre un id unique
 
-    printf("entrer le titre: ");
-    // if(nouveauTache.titre == " ") printf("You have to fill the titre field\n"); else
+    printf("Entrer le titre: ");
     fgets(nouveauTache.titre, sizeof(nouveauTache.titre), stdin);
-    printf("entrer la description: ");
-    //  if(nouveauTache.description == " ") printf("You have to fill the description field\n"); else
+
+    printf("Entrer la description: ");
     fgets(nouveauTache.description, sizeof(nouveauTache.description), stdin);
-    printf("entrer le deadline: ");
-    //  if(nouveauTache.deadline == "") printf("You have to fill the deadline field\n"); else
-    fgets(nouveauTache.deadline, sizeof(nouveauTache.deadline), stdin);
-    printf("entrer la statut: ");
-    //  if(nouveauTache.statut == "" ) printf("You have to fill the statut field\n"); else
-    fgets(nouveauTache.statut, sizeof(nouveauTache.statut), stdin);
+
+    printf("Entrer la deadline (jour mois année): ");
+    scanf("%d %d %d", &nouveauTache.deadline.day, &nouveauTache.deadline.month, &nouveauTache.deadline.year);
+    getchar();
+
+    // assigner la statut par défaut à "To do"
+    strcpy(nouveauTache.statut, "To do");
 
     taches[(*nombreTaches)] = nouveauTache;
     (*nombreTaches)++;
 }
 
-void addMany(struct ToDo taches[], int *nombreTaches)
+
+// ajouterBeaucoup
+void ajouterBeaucoup(struct ToDo taches[], int *nombreTaches)
 {
     int nbrTaches;
-    printf("\nentrer le nombre des taches que vous desirez: ");
+    printf("\nEntrer le nombre de tâches que vous désirez: ");
     scanf("%d", &nbrTaches);
     getchar();
+
     for (int i = 1; i <= nbrTaches; i++)
     {
-        addOne(taches, nombreTaches);
+        ajouterUn(taches, nombreTaches);
     }
 }
 
-void show(struct ToDo taches[], int *nombreTaches)
+
+//afficher
+void afficher(struct ToDo taches[], int *nombreTaches)
 {
+    int choix;
+    printf("\nSélectionnez l'option d'affichage: \n");
+    printf("1. Trier les tâches par ordre alphabétique\n");
+    printf("2. Trier les tâches par deadline\n");
+    printf("3. Afficher les tâches dont le délai est dans 3 jours ou moins\n");
+    printf("Entrer votre choix: ");
+    scanf("%d", &choix);
+    getchar();
+
+    switch (choix)
+    {
+    case 1:
+        // Trier les tâches par ordre alphabétique
+        for (int i = 0; i < (*nombreTaches) - 1; i++)
+        {
+            for (int j = 0; j < (*nombreTaches) - i - 1; j++)
+            {
+                if (strcmp(taches[j].titre, taches[j + 1].titre) > 0)
+                {
+                    struct ToDo temp = taches[j];
+                    taches[j] = taches[j + 1];
+                    taches[j + 1] = temp;
+                }
+            }
+        }
+        break;
+
+    case 2:
+        // Trier les tâches par deadline
+        for (int i = 0; i < (*nombreTaches) - 1; i++)
+        {
+            for (int j = 0; j < (*nombreTaches) - i - 1; j++)
+            {
+                if (taches[j].deadline.year > taches[j + 1].deadline.year ||
+                    (taches[j].deadline.year == taches[j + 1].deadline.year && taches[j].deadline.month > taches[j + 1].deadline.month) ||
+                    (taches[j].deadline.year == taches[j + 1].deadline.year && taches[j].deadline.month == taches[j + 1].deadline.month && taches[j].deadline.day > taches[j + 1].deadline.day))
+                {
+                    struct ToDo temp = taches[j];
+                    taches[j] = taches[j + 1];
+                    taches[j + 1] = temp;
+                }
+            }
+        }
+        break;
+
+    case 3:
+        // Afficher les tâches dont le délai est dans 3 jours ou moins
+        printf("\nListe des tâches dont le délai est dans 3 jours ou moins:\n");
+        for (int i = 0; i < (*nombreTaches); i++)
+        {
+            time_t now;
+            struct tm *current_time;
+            time(&now);
+            current_time = localtime(&now);
+
+            int jour_courant = current_time->tm_mday;
+            int mois_courant = current_time->tm_mon + 1;
+            int annee_courante = current_time->tm_year + 1900;
+
+            int jours_restants = 0;
+
+            if (annee_courante < taches[i].deadline.year ||
+                (annee_courante == taches[i].deadline.year && mois_courant < taches[i].deadline.month) ||
+                (annee_courante == taches[i].deadline.year && mois_courant == taches[i].deadline.month && jour_courant < taches[i].deadline.day))
+            {
+                struct tm deadline_time = {0};
+                deadline_time.tm_year = taches[i].deadline.year - 1900;
+                deadline_time.tm_mon = taches[i].deadline.month - 1;
+                deadline_time.tm_mday = taches[i].deadline.day;
+
+                time_t deadline = mktime(&deadline_time);
+                double seconds_remaining = difftime(deadline, now);
+                jours_restants = seconds_remaining / (60 * 60 * 24);
+
+                if (jours_restants <= 3)
+                {
+                    printf("ID: %d\n", taches[i].id);
+                    printf("Titre: %s", taches[i].titre);
+                    printf("Description: %s", taches[i].description);
+                    printf("Deadline: %d/%d/%d\n", taches[i].deadline.day, taches[i].deadline.month, taches[i].deadline.year);
+                    printf("Statut: %s\n", taches[i].statut);
+                    printf("Jours restants: %d\n", jours_restants);
+                    printf("\n");
+                }
+            }
+        }
+        return;
+
+    default:
+        printf("Choix invalide. Entrer un nombre valide.\n");
+        return;
+    }
+
+    printf("\nListe des tâches:\n");
     for (int i = 0; i < (*nombreTaches); i++)
     {
-        printf("\nID: %d\n", taches[i].id);
-        printf("\nTitre: %s\n", taches[i].titre);
-        printf("Description: %s\n", taches[i].description);
-        printf("Deadline: %s\n", taches[i].deadline);
+        printf("ID: %d\n", taches[i].id);
+        printf("Titre: %s", taches[i].titre);
+        printf("Description: %s", taches[i].description);
+        printf("Deadline: %d/%d/%d\n", taches[i].deadline.day, taches[i].deadline.month, taches[i].deadline.year);
         printf("Statut: %s\n", taches[i].statut);
         printf("\n");
     }
 }
-void edit(struct ToDo taches[], int *nombreTaches)
+
+
+void modifier(struct ToDo taches[], int *nombreTaches)
 {
     int ID_tache;
-    printf("entrer ID du taches pour modifier: ");
+    printf("Entrer l'ID de la tâche que vous souhaitez modifier: ");
     scanf("%d", &ID_tache);
     getchar();
 
     if (ID_tache < 1 || ID_tache > (*nombreTaches))
     {
-        printf("\ncette tache d'id %d n'exite pas\n", ID_tache);
+        printf("\nCette tâche d'ID %d n'existe pas\n", ID_tache);
         return;
     }
 
@@ -75,129 +186,125 @@ void edit(struct ToDo taches[], int *nombreTaches)
     printf("2. Deadline\n");
     printf("3. Statut\n");
     printf("Entrer votre choix: ");
-
-    int choice;
-
-    if (scanf("%d", &choice) != 1)
-    {
-        printf("Choix invalide. entrer un nombre.\n");
-        scanf("%*s"); // Efface le buffer (stockage temporel) d'entrée
-        return;
-    }
+    int choix;
+    scanf("%d", &choix);
     getchar();
 
-    switch (choice)
+    switch (choix)
     {
     case 1:
         printf("Entrer une nouvelle description: ");
         fgets(tache.description, sizeof(tache.description), stdin);
         break;
     case 2:
-        printf("Entrer un nouveau deadline: ");
-        fgets(tache.deadline, sizeof(tache.deadline), stdin);
+        printf("Entrer une nouvelle deadline (jour mois année): ");
+        scanf("%d %d %d", &tache.deadline.day, &tache.deadline.month, &tache.deadline.year);
+        getchar();
         break;
     case 3:
-        printf("Entrer une nouvelle status: ");
+        printf("Entrer un nouveau statut: ");
         fgets(tache.statut, sizeof(tache.statut), stdin);
         break;
     default:
-        printf("Choix invalide.\n");
-        return;
+        printf("Choix invalide. Entrer un nombre valide.\n");
+        break;
     }
 
     taches[ID_tache - 1] = tache;
+    printf("La tâche d'ID %d a été modifiée avec succès.\n", ID_tache);
 }
-void delete(struct ToDo taches[], int *nombreTaches)
+
+void supprimer(struct ToDo taches[], int *nombreTaches)
 {
     int ID_tache;
-    printf("Entrer ID du tache qui vous desirez de suprimer: ");
+    printf("Entrer l'ID de la tâche que vous souhaitez supprimer: ");
     scanf("%d", &ID_tache);
     getchar();
+
     if (ID_tache < 1 || ID_tache > (*nombreTaches))
     {
-        printf("\ncette tache d'id %d n'exite pas\n", ID_tache);
+        printf("\nCette tâche d'ID %d n'existe pas\n", ID_tache);
+        return;
     }
-    // Glisser les tâches après la tâche supprimée vers la gauche
+
     for (int i = ID_tache - 1; i < (*nombreTaches) - 1; i++)
     {
         taches[i] = taches[i + 1];
-        taches[i].id = i + 1; // Modier ID du chaque tache
+        taches[i].id = i + 1; // Mettre à jour l'ID de chaque tâche
     }
+
     (*nombreTaches)--;
-    printf("La tache du id %d a ete suprimer avec succes", ID_tache);
+    printf("La tâche d'ID %d a été supprimée avec succès.\n", ID_tache);
 }
 
-
-void search(struct ToDo taches[], int *nombreTaches)
+void rechercher(struct ToDo taches[], int *nombreTaches)
 {
     int choix;
     printf("Sélectionnez le champ à rechercher: \n");
     printf("1. ID\n");
     printf("2. Titre\n");
     printf("Entrer votre choix: ");
-
-    if (scanf("%d", &choix) != 1)
-    {
-        printf("Choix invalide. entrer un nombre.\n");
-        scanf("%*s"); // Efface le buffer (stockage temporel) d'entrée
-        return;
-    }
+    scanf("%d", &choix);
     getchar();
 
     switch (choix)
     {
     case 1:
-        // Recherche par ID
         int ID_tache;
         printf("Entrer l'ID de la tâche à rechercher: ");
         scanf("%d", &ID_tache);
         getchar();
 
-        for (int i = 0; i < (*nombreTaches); i++)
+        if (ID_tache < 1 || ID_tache > (*nombreTaches))
         {
-            if (taches[i].id == ID_tache)
-            {
-                printf("\nID: %d\n", taches[i].id);
-                printf("Titre: %s", taches[i].titre);
-                printf("Description: %s", taches[i].description);
-                printf("Deadline: %s", taches[i].deadline);
-                printf("Statut: %s", taches[i].statut);
-                return;
-            }
+            printf("\nAucune tâche avec l'ID %d.\n", ID_tache);
+            break;
         }
 
-        printf("\nAucune tâche trouvée avec l'ID %d.\n", ID_tache);
+        printf("\nTâche trouvée:\n");
+        printf("ID: %d\n", taches[ID_tache - 1].id);
+        printf("Titre: %s", taches[ID_tache - 1].titre);
+        printf("Description: %s", taches[ID_tache - 1].description);
+        printf("Deadline: %d/%d/%d\n", taches[ID_tache - 1].deadline.day, taches[ID_tache - 1].deadline.month, taches[ID_tache - 1].deadline.year);
+        printf("Statut: %s\n", taches[ID_tache - 1].statut);
         break;
 
     case 2:
-        // Recherche par titre
         char titre[100];
         printf("Entrer le titre de la tâche à rechercher: ");
         fgets(titre, sizeof(titre), stdin);
 
+        int found = 0;
         for (int i = 0; i < (*nombreTaches); i++)
         {
             if (strcmp(taches[i].titre, titre) == 0)
             {
-                printf("\nID: %d\n", taches[i].id);
+                if (!found)
+                {
+                    printf("\nTâches trouvées:\n");
+                    found = 1;
+                }
+                printf("ID: %d\n", taches[i].id);
                 printf("Titre: %s", taches[i].titre);
                 printf("Description: %s", taches[i].description);
-                printf("Deadline: %s", taches[i].deadline);
-                printf("Statut: %s", taches[i].statut);
-                return;
+                printf("Deadline: %d/%d/%d\n", taches[i].deadline.day, taches[i].deadline.month, taches[i].deadline.year);
+                printf("Statut: %s\n", taches[i].statut);
+                printf("\n");
             }
         }
 
-        printf("\nAucune tâche trouvée avec le titre \"%s\".\n", titre);
+        if (!found)
+        {
+            printf("\nAucune tâche avec le titre \"%s\".\n", titre);
+        }
         break;
 
     default:
-        printf("Choix invalide.\n");
-        return;
+        printf("Choix invalide. Entrer un nombre valide.\n");
+        break;
     }
 }
-
-void statistics(struct ToDo taches[], int *nombreTaches)
+void statistiques(struct ToDo taches[], int *nombreTaches)
 {
     int tachesComplet = 0;
     int tachesIncomplet = 0;
@@ -206,7 +313,7 @@ void statistics(struct ToDo taches[], int *nombreTaches)
 
     for (int i = 0; i < *nombreTaches; i++)
     {
-        if (strcmp(taches[i].statut, "done") == 0)
+        if (strcmp(taches[i].statut, "done\n") == 0)
         {
             tachesComplet++;
         }
@@ -214,6 +321,40 @@ void statistics(struct ToDo taches[], int *nombreTaches)
         {
             tachesIncomplet++;
         }
+
+        // Calculer le nombre de jours restants jusqu'à la date limite
+        time_t now;
+        struct tm *current_time;
+        time(&now);
+        current_time = localtime(&now);
+
+        int jour_courant = current_time->tm_mday;
+        int mois_courant = current_time->tm_mon + 1;
+        int annee_courante = current_time->tm_year + 1900;
+
+        int jours_restants = 0;
+
+        if (annee_courante < taches[i].deadline.year ||
+            (annee_courante == taches[i].deadline.year && mois_courant < taches[i].deadline.month) ||
+            (annee_courante == taches[i].deadline.year && mois_courant == taches[i].deadline.month && jour_courant < taches[i].deadline.day))
+        {
+            struct tm deadline_time = {0};
+            deadline_time.tm_year = taches[i].deadline.year - 1900;
+            deadline_time.tm_mon = taches[i].deadline.month - 1;
+            deadline_time.tm_mday = taches[i].deadline.day;
+
+            time_t deadline = mktime(&deadline_time);
+            double seconds_remaining = difftime(deadline, now);
+            jours_restants = seconds_remaining / (60 * 60 * 24);
+        }
+
+        printf("ID: %d\n", taches[i].id);
+        printf("Titre: %s", taches[i].titre);
+        printf("Description: %s", taches[i].description);
+        printf("Deadline: %d/%d/%d\n", taches[i].deadline.day, taches[i].deadline.month, taches[i].deadline.year);
+        printf("Statut: %s\n", taches[i].statut);
+        printf("Jours restants: %d\n", jours_restants);
+        printf("\n");
     }
 
     printf("Nombre de tâches terminées: %d\n", tachesComplet);
@@ -223,59 +364,64 @@ void statistics(struct ToDo taches[], int *nombreTaches)
 int main()
 {
     struct ToDo taches[100]; // supposant 100 est le max des taches
-    int nombreTaches = 0;    // Nombre des taches actuellement stocker
+    int nombreTaches = 0;    // Nombre des taches actuellement stockées
     int choix;
 
     do
     {
         printf("\n\tGestion de Tâches ToDo\n\n");
-        printf("1 .Ajouter une nouvelle tâche\n");
-        printf("2 .Ajouter plusieurs nouvelles tâches\n");
-        printf("3 .Afficher la liste de toutes les tâches\n");
-        printf("4 .Modifier une tâche\n");
-        printf("5 .Supprimer une tâche par identifiant\n");
-        printf("6 .Rechercher les tâches\n");
-        printf("7 .Statistiques\n");
-        printf("8 .Quitter\n");
+        printf("1. Ajouter une nouvelle tâche\n");
+        printf("2. Ajouter plusieurs nouvelles tâches\n");
+        printf("3. Afficher la liste de toutes les tâches\n");
+        printf("4. Modifier une tâche\n");
+        printf("5. Supprimer une tâche par identifiant\n");
+        printf("6. Rechercher les tâches\n");
+        printf("7. Statistiques\n");
+        printf("8. Quitter\n");
         printf("\n-----------------------\n");
-        printf("entrer votre choix: ");
+        printf("Entrer votre choix: ");
         scanf("%d", &choix);
         getchar();
+
         switch (choix)
         {
         case 1:
-            // Ajouter nouveau tache
-            addOne(taches, &nombreTaches);
+            // Ajouter une nouvelle tâche
+            ajouterUn(taches, &nombreTaches);
             break;
         case 2:
-            addMany(taches, &nombreTaches);
+            // Ajouter plusieurs nouvelles tâches
+            ajouterBeaucoup(taches, &nombreTaches);
             break;
-
         case 3:
-            // afficher tous les taches
-            show(taches, &nombreTaches);
+            // Afficher la liste de toutes les tâches
+            afficher(taches, &nombreTaches);
             break;
         case 4:
-            // modifier par identifion (id)
-            edit(taches, &nombreTaches);
+            // Modifier une tâche
+            modifier(taches, &nombreTaches);
             break;
         case 5:
-            // suprimer par identifion (id)
-            delete (taches, &nombreTaches);
+            // Supprimer une tâche par identifiant
+            supprimer(taches, &nombreTaches);
             break;
         case 6:
-            // rechercher par identifion (id)
-            search(taches, &nombreTaches);
+            // Rechercher les tâches
+            rechercher(taches, &nombreTaches);
             break;
         case 7:
-            // rechercher par identifion (id)
-            statistics(taches, &nombreTaches);
+            // Statistiques
+            statistiques(taches, &nombreTaches);
+            break;
+        case 8:
+            // Quitter
+            printf("Au revoir!\n");
             break;
         default:
-            printf("\nInvalid choice\n");
+            printf("Choix invalide. Entrer un nombre valide.\n");
             break;
         }
     } while (choix != 8);
 
-    return 1;
+    return 0;
 }
